@@ -12,7 +12,7 @@ services:
         - letsencrypt-config:/etc/letsencrypt
         
     letsencrypt:
-      image: cvast/cvast-letsencrypt:1.0
+      image: vmeijer/letsencrypt-client:latest
       build: 
         context: .
         dockerfile: ./Dockerfile
