@@ -17,6 +17,7 @@ RUNNING_ON_AWS=False
 # Get the first domain in the list
 set -- ${DOMAIN_NAMES}
 PRIMARY_DOMAIN_NAME=$1
+
 LETSENCRYPT_BASEDIR_DEFAULT=/etc/letsencrypt
 LETSENCRYPT_BASEDIR="${LETSENCRYPT_BASEDIR:-$LETSENCRYPT_BASEDIR_DEFAULT}"
 LETSENCRYPT_LIVEDIR=${LETSENCRYPT_BASEDIR}/live
@@ -208,8 +209,7 @@ persist_renewal_certificates() {
 
 get_domain_name_parameters() {
 	local letsencrypt_domain_parameters=""
-	domain_name_array=(${DOMAIN_NAMES})
-	for domain_name in ${domain_name_array}; do
+	for domain_name in ${DOMAIN_NAMES}; do
 		letsencrypt_domain_parameters+=" -d ${domain_name}"
 	done
 	echo ${letsencrypt_domain_parameters}
