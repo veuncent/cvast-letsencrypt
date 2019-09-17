@@ -35,6 +35,7 @@ ACME_DIRECTORY_URL_STAGING="${ACME_DIRECTORY_URL_STAGING:-$ACME_DIRECTORY_URL_ST
 ACME_DIRECTORY_URL=${ACME_DIRECTORY_URL_STAGING}
 
 KEY_TYPE="${KEY_TYPE:-rsa}"
+FORCE_DOWNLOAD="${FORCE_DOWNLOAD:-False}"
 FORCE_RENEWAL="${FORCE_RENEWAL:-False}"
 FORCE_RENEWAL_CERTBOT="--force-renewal"
 FORCE_RENEWAL_AWS="--force-issue"
@@ -100,6 +101,7 @@ Automatically download or renew certificate for domain(s) provided through the D
 		
         - Optional:
 			- MODE: regular|elb. Default = regular. Set to 'elb' when running behind an AWS Elastic Load Balancer.
+			- FORCE_DOWNLOAD: True|False. Force downloading a new vertificate, even when one exists. Useful when adding new domains to an existing certificate. Default: False.
             - FORCE_RENEWAL: True|False. Force issue of a certificate, even if it is not due for renewal. Default = False.
             - PERSISTENT_MODE: True|False. Keep this Docker container running as a service in order to have your 
             certificates renewed automatically. Default = False.
@@ -343,6 +345,11 @@ set_additional_parameters() {
 		exit 1
 	fi
 
+	if [[ "${PERSISTENT_MODE}" == True ]] && [[ "${FORCE_DOWNLOAD}" == True ]]; then
+		echo "Error: Environment variables PERSISTENT_MODE and FORCE_DOWNLOAD cannot both be true, exiting..."
+		exit 1
+	fi
+
 	if [[ "${MODE}" == "elb" ]]; then
 		if [[ "${PERSISTENT_MODE}" == True ]]; then
 			ADDITIONAL_PARAMETERS="${ADDITIONAL_PARAMETERS} ${PERSISTENT_MODE_AWS}"
@@ -379,13 +386,13 @@ run_letsencrypt_standard() {
 	echo "+++ Executing LetsEncrypt in standard mode +++"
 	set +e
 	check_certificate_exists
-	local exit_code=$?
+	local certificate_exists=$?
 	set -e
 
-	if [[ ${exit_code} == 0 ]]; then
-		renew_certificates
-	else
+	if [[ ${certificate_exists} != 0 ]] || [[ "${FORCE_DOWNLOAD}" == True ]]; then
 		download_certificates
+	else
+		renew_certificates
 	fi
 
 	if [[ "${PERSISTENT_MODE}" == True ]]; then
