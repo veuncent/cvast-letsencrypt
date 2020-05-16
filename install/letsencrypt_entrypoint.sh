@@ -101,7 +101,7 @@ Automatically download or renew certificate for domain(s) provided through the D
 		
         - Optional:
 			- MODE: regular|elb. Default = regular. Set to 'elb' when running behind an AWS Elastic Load Balancer.
-			- FORCE_DOWNLOAD: True|False. Force downloading a new vertificate, even when one exists. Useful when adding new domains to an existing certificate. Default: False.
+			- FORCE_DOWNLOAD: True|False. Force downloading a new certificate, even when one exists. Useful when adding new domains to an existing certificate. Default: False.
             - FORCE_RENEWAL: True|False. Force issue of a certificate, even if it is not due for renewal. Default = False.
             - PERSISTENT_MODE: True|False. Keep this Docker container running as a service in order to have your 
             certificates renewed automatically. Default = False.
@@ -170,10 +170,16 @@ In that case the private key is saved to /etc/letsencrypt.
 download_certificates() {
 	echo "Preparing to download new certificate from LetsEncrypt..."
 	mkdir -p ${WEB_ROOT}/${PRIMARY_DOMAIN_NAME}
+	
+	echo "Domain names to parse: [${DOMAIN_NAMES}]"
 	LETSENCRYPT_DOMAIN_PARAMETERS="$(get_domain_name_parameters)"
 
+	if [[ "${FORCE_DOWNLOAD}" == True ]]; then
+		expand_flag="--expand"
+	fi
 
 	set +e
+	set -x
 
 	echo "Starting Certbot to download certificate"
 	certbot certonly \
@@ -183,11 +189,14 @@ download_certificates() {
 		--email ${LETSENCRYPT_EMAIL} \
 		--webroot \
 		--webroot-path ${WEB_ROOT} \
+		${expand_flag} \
 		${LETSENCRYPT_DOMAIN_PARAMETERS} \
 		${PROD_OR_STAGING} \
 		${ADDITIONAL_PARAMETERS}
 
 	local exit_code=$?
+	set +x
+
 	if [[ ${exit_code} != 0 ]]; then
 		echo "Failed to download certificate with Certbot. Exit code: ${exit_code}. Exiting..."
 		exit ${exit_code}
@@ -203,9 +212,9 @@ renew_certificates() {
 
 persist_renewal_certificates() {
 	while true; do
-		renew_certificates
 		echo "Next renew attempt will be in: ${LETSENCRYPT_RENEWAL_SLEEP_TIME}"
 		sleep_for_renewal
+		renew_certificates
 	done
 }
 
@@ -396,8 +405,9 @@ run_letsencrypt_standard() {
 	fi
 
 	if [[ "${PERSISTENT_MODE}" == True ]]; then
-		sleep_for_renewal
 		persist_renewal_certificates
+	else
+		echo "Persistent mode = false, exiting..."
 	fi
 }
 
