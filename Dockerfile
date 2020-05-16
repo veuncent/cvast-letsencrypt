@@ -1,8 +1,7 @@
-FROM python:2.7-slim
+FROM python:2.7-slim-buster
 
 USER root
 
-RUN echo "deb http://ftp.debian.org/debian jessie-backports main" >> /etc/apt/sources.list.d/sources.list
 RUN apt-get update -y &&\
 	apt-get upgrade -y &&\
 	apt-get update -y &&\
@@ -12,7 +11,7 @@ RUN apt-get update -y &&\
 	apt-get install -y git &&\
 	apt-get install -y curl &&\
 	apt-get install -y dos2unix &&\
-	apt-get install -y certbot -t jessie-backports
+	apt-get install -y certbot
 	
 ENV INSTALL_DIR_LOCAL=./install
 ENV INSTALL_DIR=/install
